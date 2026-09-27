@@ -1,0 +1,15 @@
+# Descarga de datos
+requests>=2.31
+python-dotenv>=1.0
+
+# Manejo de datos
+numpy>=1.26
+pandas>=2.2
+
+# Estadística y econometría (pruebas, ACF/PACF, modelos ARCH/GARCH)
+scipy>=1.11
+statsmodels>=0.14
+arch>=7.0
+
+# Gráficas
+matplotlib>=3.8
