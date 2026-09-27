@@ -1,0 +1,687 @@
+<title>Pronóstico del FIX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --page: #f4f6f8;
+    --surface: #ffffff;
+    --ink: #0f1318;
+    --ink-2: #4a5360;
+    --muted: #768090;
+    --grid: #e4e7eb;
+    --axis: #c4cad2;
+    --border: rgba(15, 19, 24, 0.10);
+    --accent: #2a78d6;
+    --band80: rgba(42, 120, 214, 0.24);
+    --band95: rgba(42, 120, 214, 0.11);
+    --region: rgba(42, 120, 214, 0.045);
+    --tip: #0f1318;
+    --tip-ink: #ffffff;
+    --tip-ink-2: #b8c0cb;
+    --focus: #2a78d6;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Consolas, "Liberation Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0c0e11;
+      --surface: #15181d;
+      --ink: #f2f4f7;
+      --ink-2: #b9c0ca;
+      --muted: #858e9b;
+      --grid: #262a31;
+      --axis: #3a404a;
+      --border: rgba(255, 255, 255, 0.10);
+      --accent: #3987e5;
+      --band80: rgba(57, 135, 229, 0.32);
+      --band95: rgba(57, 135, 229, 0.15);
+      --region: rgba(57, 135, 229, 0.06);
+      --tip: #f2f4f7;
+      --tip-ink: #0f1318;
+      --tip-ink-2: #4a5360;
+      --focus: #3987e5;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0c0e11;
+    --surface: #15181d;
+    --ink: #f2f4f7;
+    --ink-2: #b9c0ca;
+    --muted: #858e9b;
+    --grid: #262a31;
+    --axis: #3a404a;
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5;
+    --band80: rgba(57, 135, 229, 0.32);
+    --band95: rgba(57, 135, 229, 0.15);
+    --region: rgba(57, 135, 229, 0.06);
+    --tip: #f2f4f7;
+    --tip-ink: #0f1318;
+    --tip-ink-2: #4a5360;
+    --focus: #3987e5;
+  }
+
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding-inline: clamp(16px, 4vw, 32px);
+    padding-block: 40px 56px;
+    display: grid;
+    gap: 24px;
+  }
+
+  header { display: grid; gap: 10px; }
+  .eyebrow {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(24px, 3.2vw, 32px);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .lede { margin: 0; max-width: 64ch; color: var(--ink-2); font-size: 16px; }
+
+  .tiles { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 560px) {
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .tile.rango { grid-column: 1 / -1; }
+  }
+  @media (min-width: 860px) {
+    .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .tile.rango { grid-column: auto; }
+  }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: grid;
+    gap: 4px;
+    align-content: start;
+  }
+  .tile .label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .tile .value {
+    font-size: clamp(28px, 3.2vw, 34px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .tile .note { font-size: 13px; color: var(--muted); }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 18px 14px;
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+  .panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 24px;
+  }
+  h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .sub { margin: 0; font-size: 13px; color: var(--muted); }
+
+  .leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .leyenda li { display: flex; align-items: center; gap: 7px; }
+  .key { width: 22px; height: 12px; flex: none; }
+  .key line { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+  .key .pron { stroke-dasharray: 4 3; stroke-linecap: butt; }
+  .key .b80 { fill: var(--band80); }
+  .key .b95 { fill: var(--band95); }
+
+  #grafica { position: relative; border-radius: 6px; }
+  #grafica:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+  #lienzo svg { display: block; }
+  #lienzo .region { fill: var(--region); }
+  #lienzo .grid { stroke: var(--grid); stroke-width: 1; }
+  #lienzo .sep { stroke: var(--grid); stroke-width: 1; }
+  #lienzo .axis { stroke: var(--axis); stroke-width: 1; }
+  #lienzo .tick { fill: var(--muted); font: 400 11.5px var(--mono); }
+  #lienzo .rotulo {
+    fill: var(--muted);
+    font: 500 11px var(--sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  #lienzo .b80 { fill: var(--band80); }
+  #lienzo .b95 { fill: var(--band95); }
+  #lienzo .linea {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  #lienzo .linea.pron { stroke-dasharray: 5 4; stroke-linecap: butt; }
+  #lienzo .punto { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  #lienzo .etq { fill: var(--ink); font: 600 12.5px var(--mono); }
+  #lienzo .etq-2 { fill: var(--ink-2); font: 400 11.5px var(--mono); }
+  #lienzo .cruz { stroke: var(--ink-2); stroke-width: 1; }
+  #lienzo .pto { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  #lienzo .captura { fill: transparent; cursor: crosshair; }
+
+  .tip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background: var(--tip);
+    color: var(--tip-ink);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    min-width: 168px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    display: grid;
+    gap: 2px;
+  }
+  .tip .t-f { color: var(--tip-ink-2); margin-bottom: 2px; }
+  .tip .t-v { display: flex; justify-content: space-between; gap: 16px; }
+  .tip .t-v b { font: 500 12.5px var(--mono); }
+
+  .tablas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .scroll { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+    font-size: 13.5px;
+  }
+  thead th {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    text-align: right;
+    padding: 0 10px 8px;
+    border-bottom: 1px solid var(--axis);
+    white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; padding-left: 0; }
+  tbody th {
+    text-align: left;
+    font-weight: 400;
+    color: var(--ink-2);
+    padding: 7px 10px 7px 0;
+    white-space: nowrap;
+  }
+  tbody td {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 7px 10px;
+    white-space: nowrap;
+  }
+  tbody td:last-child, thead th:last-child { padding-right: 0; }
+  tbody tr + tr > * { border-top: 1px solid var(--grid); }
+  tr.semana > th {
+    padding-top: 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  tr.semana .semana-f { display: flex; justify-content: space-between; gap: 12px; }
+  tr.semana .semana-f span:last-child { font-family: var(--mono); font-weight: 400; color: var(--ink-2); }
+  tbody tr.semana:first-child > th { padding-top: 10px; }
+  tr.feriado td { font-family: var(--sans); color: var(--muted); text-align: left; }
+  td.fuerte { font-weight: 500; color: var(--ink); }
+
+  .nota {
+    margin: 0;
+    max-width: 78ch;
+    font-size: 12.5px;
+    color: var(--muted);
+    display: grid;
+    gap: 6px;
+  }
+  .nota p { margin: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<main class="wrap">
+  <header>
+    <p class="eyebrow">Tipo de cambio FIX · pesos por dólar · <span id="actualizado"></span></p>
+    <h1 id="titulo">Pronóstico del FIX</h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <section class="tiles" aria-label="Resumen">
+    <div class="tile">
+      <span class="label">
+        <svg class="key" viewBox="0 0 22 12" aria-hidden="true"><line x1="2" y1="6" x2="20" y2="6"/></svg>
+        <span id="k1-label">Último FIX</span>
+      </span>
+      <span class="value" id="k1-valor"></span>
+      <span class="note" id="k1-nota"></span>
+    </div>
+    <div class="tile">
+      <span class="label">
+        <svg class="key" viewBox="0 0 22 12" aria-hidden="true"><line class="pron" x1="1" y1="6" x2="21" y2="6"/></svg>
+        <span id="k2-label">Pronóstico</span>
+      </span>
+      <span class="value" id="k2-valor"></span>
+      <span class="note" id="k2-nota"></span>
+    </div>
+    <div class="tile rango">
+      <span class="label">
+        <svg class="key" viewBox="0 0 22 12" aria-hidden="true"><rect class="b80" x="0" y="1" width="22" height="10" rx="2"/></svg>
+        <span id="k3-label">Rango 80%</span>
+      </span>
+      <span class="value" id="k3-valor"></span>
+      <span class="note" id="k3-nota"></span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-grafica">
+    <div class="panel-head">
+      <div>
+        <h2 id="t-grafica">FIX diario y pronóstico</h2>
+        <p class="sub" id="sub-grafica"></p>
+      </div>
+      <ul class="leyenda">
+        <li><svg class="key" viewBox="0 0 22 12" aria-hidden="true"><line x1="2" y1="6" x2="20" y2="6"/></svg>Observado</li>
+        <li><svg class="key" viewBox="0 0 22 12" aria-hidden="true"><line class="pron" x1="1" y1="6" x2="21" y2="6"/></svg>Pronóstico (media)</li>
+        <li><svg class="key" viewBox="0 0 22 12" aria-hidden="true"><rect class="b80" x="0" y="1" width="22" height="10" rx="2"/></svg>Rango 80%</li>
+        <li><svg class="key" viewBox="0 0 22 12" aria-hidden="true"><rect class="b95" x="0" y="1" width="22" height="10" rx="2"/></svg>Rango 95%</li>
+      </ul>
+    </div>
+    <div id="grafica" tabindex="0" aria-label="Gráfica del FIX observado y pronosticado. Usa las flechas izquierda y derecha para recorrer los días.">
+      <div id="lienzo"></div>
+      <div id="tip" class="tip" hidden></div>
+    </div>
+  </section>
+
+  <section class="tablas">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Pronóstico diario</h2>
+        <p class="sub" id="sub-pron"></p>
+      </div>
+      <div class="scroll">
+        <table id="tabla-pron">
+          <thead>
+            <tr><th scope="col">Día</th><th scope="col">Media</th><th scope="col">Rango 80%</th><th scope="col">Rango 95%</th><th scope="col">Vol. diaria</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Observado</h2>
+        <p class="sub" id="sub-obs"></p>
+      </div>
+      <div class="scroll">
+        <table id="tabla-obs">
+          <thead>
+            <tr><th scope="col">Día</th><th scope="col">FIX</th><th scope="col">Var. diaria</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="nota">
+    <p>Fuente: Banxico, Sistema de Información Económica, serie SF43718. Un valor más alto significa más pesos por dólar, es decir, un peso más débil.</p>
+    <p id="nota-modelo"></p>
+  </footer>
+</main>
+
+<script>
+  // genera_artefacto.py sustituye la marca siguiente por los datos
+  const DATOS = {"obs": [["2026-09-04", 16.8748], ["2026-09-07", 16.9237], ["2026-09-08", 16.9202], ["2026-09-09", 16.8947], ["2026-09-10", 16.9722], ["2026-09-11", 16.9707], ["2026-09-14", 17.1277], ["2026-09-15", 17.1527], ["2026-09-17", 17.1872], ["2026-09-18", 17.245], ["2026-09-21", 17.2203], ["2026-09-22", 17.3015], ["2026-09-23", 17.503], ["2026-09-24", 17.6425], ["2026-09-25", 17.71]], "pron": [{"f": "2026-09-28", "m": 17.7025, "l80": 17.562, "u80": 17.8437, "l95": 17.4643, "u95": 17.9489, "s": 0.681}, {"f": "2026-09-29", "m": 17.6942, "l80": 17.4936, "u80": 17.8944, "l95": 17.356, "u95": 18.0435, "s": 0.6864}, {"f": "2026-09-30", "m": 17.6851, "l80": 17.4383, "u80": 17.9309, "l95": 17.2712, "u95": 18.108, "s": 0.6913}, {"f": "2026-10-01", "m": 17.6757, "l80": 17.3906, "u80": 17.9589, "l95": 17.1982, "u95": 18.1584, "s": 0.6946}, {"f": "2026-10-02", "m": 17.6665, "l80": 17.3474, "u80": 17.9816, "l95": 17.1338, "u95": 18.2067, "s": 0.6975}], "feriados": {"2026-09-16": "Día de la Independencia"}, "modelo": {"generado": "2026-09-26T23:32", "modelo": "GARCH(1,1)-t", "media": "Constant", "n_obs": 2514, "muestra_inicio": "2016-09-27", "muestra_fin": "2026-09-25", "ultimo_fix": 17.71, "n_sim": 20000, "params": {"mu": -0.048027, "omega": 0.027339, "alpha[1]": 0.15424, "beta[1]": 0.801372, "nu": 5.776}, "persistencia": 0.955612}};
+
+  const MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const MES_L = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const DIA = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  const DIA_L = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+  const aFecha = s => { const [y, m, d] = s.slice(0, 10).split("-").map(Number); return new Date(y, m - 1, d); };
+  const aIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const sumarDias = (s, k) => { const d = aFecha(s); d.setDate(d.getDate() + k); return aIso(d); };
+  const lunesDe = s => { const d = aFecha(s); return sumarDias(s, -((d.getDay() + 6) % 7)); };
+  const corta = s => { const d = aFecha(s); return `${d.getDate()} ${MES[d.getMonth()]}`; };
+  const conDia = s => { const d = aFecha(s); return `${DIA[d.getDay()]} ${d.getDate()} ${MES[d.getMonth()]}`; };
+  const larga = s => { const d = aFecha(s); return `${d.getDate()} de ${MES_L[d.getMonth()]}`; };
+  const diaLarga = s => { const d = aFecha(s); return `${DIA_L[d.getDay()]} ${d.getDate()} de ${MES_L[d.getMonth()]}`; };
+  const completa = s => `${larga(s)} de ${aFecha(s).getFullYear()}`;
+  const mismoMes = (a, b) => a.slice(0, 7) === b.slice(0, 7);
+  const rangoLargo = (a, b) => mismoMes(a, b)
+    ? `del ${aFecha(a).getDate()} al ${larga(b)}`
+    : `del ${larga(a)} al ${larga(b)}`;
+  const rangoCorto = (a, b) => mismoMes(a, b)
+    ? `${aFecha(a).getDate()} al ${corta(b)}`
+    : `${corta(a)} al ${corta(b)}`;
+  const n2 = v => v.toFixed(2);
+  const n4 = v => v.toFixed(4);
+  const pct = (v, dec = 2) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(dec)}%`;
+  const $ = id => document.getElementById(id);
+
+  const { obs: OBS, pron: PRON, feriados: FERIADOS, modelo: META } = DATOS;
+  const previo = OBS[0];                       // último FIX antes de la ventana
+  const ventana = OBS.slice(1);
+  const ultimo = ventana[ventana.length - 1];
+  const finPron = PRON[PRON.length - 1];
+  const puntos = [
+    ...ventana.map(([f, v], i) => ({ f, v, tipo: "obs", cambio: (v / OBS[i][1] - 1) * 100 })),
+    ...PRON.map(p => ({ ...p, v: p.m, tipo: "pron" }))
+  ];
+  const iUlt = ventana.length - 1;
+
+  /* ---------- Encabezado y resumen ---------- */
+  const gen = META.generado;
+  $("actualizado").textContent = `actualizado ${conDia(gen)} ${aFecha(gen).getFullYear()}, ${gen.slice(11, 16)} h`;
+
+  const cambioVentana = (ultimo[1] / previo[1] - 1) * 100;
+  const hace5 = OBS[Math.max(0, OBS.length - 6)];
+  const cambio5 = (ultimo[1] / hace5[1] - 1) * 100;
+  const cambioPron = (finPron.m / ultimo[1] - 1) * 100;
+
+  $("titulo").textContent = `Pronóstico ${rangoLargo(PRON[0].f, finPron.f)}`;
+  $("lede").textContent =
+    `El FIX ${cambioVentana >= 0 ? "subió" : "bajó"} ${Math.abs(cambioVentana).toFixed(2)}% desde el ${larga(previo[0])} ` +
+    `y el ${diaLarga(ultimo[0])} quedó en ${n4(ultimo[1])}. El modelo GARCH(1,1)-t espera que el ` +
+    `${diaLarga(finPron.f)} se ubique cerca de ${n2(finPron.m)}, con 80% de probabilidad entre ` +
+    `${n2(finPron.l80)} y ${n2(finPron.u80)}.`;
+
+  $("k1-label").textContent = `Último FIX · ${conDia(ultimo[0])}`;
+  $("k1-valor").textContent = n4(ultimo[1]);
+  $("k1-nota").textContent = `${pct(cambio5)} en cinco días hábiles · ${pct(cambioVentana)} desde el ${corta(previo[0])}`;
+  $("k2-label").textContent = `Pronóstico · ${conDia(finPron.f)}`;
+  $("k2-valor").textContent = n2(finPron.m);
+  $("k2-nota").textContent = `${pct(cambioPron)} frente al último FIX`;
+  $("k3-label").textContent = `Rango 80% · ${conDia(finPron.f)}`;
+  $("k3-valor").textContent = `${n2(finPron.l80)} – ${n2(finPron.u80)}`;
+  $("k3-nota").textContent = `Rango 95%: ${n2(finPron.l95)} – ${n2(finPron.u95)}`;
+
+  $("sub-grafica").textContent =
+    `Del ${larga(ventana[0][0])} al ${completa(finPron.f)}, días hábiles bancarios`;
+  $("sub-pron").textContent = rangoCorto(PRON[0].f, finPron.f);
+  $("sub-obs").textContent = rangoCorto(ventana[0][0], ultimo[0]);
+
+  const P = META.params;
+  let notaModelo =
+    `Modelo: GARCH(1,1) con errores t de Student y ${META.media === "Zero" ? "media cero" : "media constante"}, ` +
+    `estimado con ${META.n_obs.toLocaleString("es-MX")} rendimientos logarítmicos diarios del ` +
+    `${completa(META.muestra_inicio)} al ${completa(META.muestra_fin)} ` +
+    `(α + β = ${META.persistencia.toFixed(3)}, ν = ${P.nu.toFixed(1)}). ` +
+    `La media y los rangos salen de ${META.n_sim.toLocaleString("es-MX")} trayectorias simuladas; ` +
+    `la volatilidad diaria es la desviación estándar condicional del rendimiento que pronostica el modelo.`;
+  if (META.media !== "Zero") {
+    notaModelo += ` La media constante estimada (${pct(P.mu, 3)} diario) inclina el pronóstico ligeramente ` +
+      `${P.mu < 0 ? "a la baja" : "al alza"}.`;
+  }
+  $("nota-modelo").textContent = notaModelo;
+
+  /* ---------- Tablas ---------- */
+  const obsPorFecha = new Map(puntos.filter(p => p.tipo === "obs").map(p => [p.f, p]));
+  const pronPorFecha = new Map(PRON.map(p => [p.f, p]));
+  const semanas = [];
+  for (let l = lunesDe(ventana[0][0]); l <= finPron.f; l = sumarDias(l, 7)) {
+    semanas.push([0, 1, 2, 3, 4].map(k => sumarDias(l, k)));
+  }
+  const encabezado = (dias, cols, derecha) => `
+    <tr class="semana"><th colspan="${cols}" scope="rowgroup"><span class="semana-f">
+      <span>Semana del ${rangoCorto(dias[0], dias[4])}</span><span>${derecha}</span>
+    </span></th></tr>`;
+  const feriado = (f, cols) =>
+    `<tr class="feriado"><th scope="row">${conDia(f)}</th><td colspan="${cols}">Feriado bancario: ${FERIADOS[f]}</td></tr>`;
+
+  let filasPron = "";
+  for (const dias of semanas) {
+    const enRango = dias.filter(f => f > ultimo[0] && f <= finPron.f);
+    const conPron = enRango.filter(f => pronPorFecha.has(f));
+    if (!conPron.length) continue;
+    const cierreSem = pronPorFecha.get(conPron[conPron.length - 1]).m;
+    filasPron += encabezado(dias, 5, `${pct((cierreSem / ultimo[1] - 1) * 100)} vs. último FIX`);
+    for (const f of enRango) {
+      const p = pronPorFecha.get(f);
+      if (p) {
+        filasPron += `<tr><th scope="row">${conDia(f)}</th><td class="fuerte">${n4(p.m)}</td>` +
+          `<td>${n2(p.l80)} – ${n2(p.u80)}</td><td>${n2(p.l95)} – ${n2(p.u95)}</td><td>${p.s.toFixed(2)}%</td></tr>`;
+      } else if (FERIADOS[f]) {
+        filasPron += feriado(f, 4);
+      }
+    }
+  }
+  document.querySelector("#tabla-pron tbody").innerHTML = filasPron;
+
+  let filasObs = "";
+  let cierrePrevio = previo[1];
+  for (const dias of semanas) {
+    const enRango = dias.filter(f => f >= ventana[0][0] && f <= ultimo[0]);
+    const conObs = enRango.filter(f => obsPorFecha.has(f));
+    if (!conObs.length) continue;
+    const cierreSem = obsPorFecha.get(conObs[conObs.length - 1]).v;
+    const cambioSem = (cierreSem / cierrePrevio - 1) * 100;
+    cierrePrevio = cierreSem;
+    const incompleta = dias.some(f => pronPorFecha.has(f));
+    filasObs += encabezado(dias, 3, `${pct(cambioSem)} ${incompleta ? "en lo que va de la semana" : "en la semana"}`);
+    for (const f of dias.filter(f => f >= ventana[0][0] && f <= ultimo[0])) {
+      const p = obsPorFecha.get(f);
+      if (p) {
+        filasObs += `<tr><th scope="row">${conDia(f)}</th><td>${n4(p.v)}</td><td>${pct(p.cambio)}</td></tr>`;
+      } else if (FERIADOS[f]) {
+        filasObs += feriado(f, 2);
+      } else {
+        filasObs += `<tr class="feriado"><th scope="row">${conDia(f)}</th><td colspan="2">Sin dato</td></tr>`;
+      }
+    }
+  }
+  document.querySelector("#tabla-obs tbody").innerHTML = filasObs;
+
+  /* ---------- Gráfica ---------- */
+  const cont = $("grafica");
+  const lienzo = $("lienzo");
+  const tip = $("tip");
+  let geo = null;
+  let activo = null;
+  let anchoPrevio = 0;
+
+  function pasoBonito(bruto) {
+    const e = Math.pow(10, Math.floor(Math.log10(bruto)));
+    const f = bruto / e;
+    const k = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
+    return k * e;
+  }
+
+  function dibujar() {
+    const W = Math.floor(lienzo.clientWidth);
+    if (!W) return;
+    anchoPrevio = W;
+    const angosto = W < 560;
+    const H = angosto ? 300 : 360;
+    const m = { t: 30, r: angosto ? 46 : 58, b: 34, l: angosto ? 44 : 52 };
+    const iw = W - m.l - m.r;
+    const ih = H - m.t - m.b;
+    const n = puntos.length;
+    const paso = iw / n;
+    const x = i => m.l + (i + 0.5) * paso;
+
+    const valores = [...puntos.slice(0, iUlt + 1).map(p => p.v), ...PRON.flatMap(p => [p.l95, p.u95])];
+    const lo = Math.min(...valores);
+    const hi = Math.max(...valores);
+    const step = pasoBonito((hi - lo) / 6);
+    const k0 = Math.floor(lo / step);
+    const k1 = Math.ceil(hi / step);
+    const y0 = k0 * step;
+    const y1 = k1 * step;
+    const y = v => m.t + ih - (v - y0) / (y1 - y0) * ih;
+    const f1 = v => v.toFixed(1);
+
+    let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">`;
+
+    const xr0 = x(iUlt);
+    s += `<rect class="region" x="${f1(xr0)}" y="${m.t}" width="${f1(m.l + iw - xr0)}" height="${ih}"/>`;
+    s += `<text class="rotulo" x="${f1(xr0 + 8)}" y="${m.t - 12}">Pronóstico</text>`;
+
+    for (let k = k0; k <= k1; k++) {
+      const t = k * step;
+      const yy = f1(y(t));
+      s += `<line class="grid" x1="${m.l}" x2="${m.l + iw}" y1="${yy}" y2="${yy}"/>`;
+      s += `<text class="tick" x="${m.l - 8}" y="${yy}" dy="0.32em" text-anchor="end">${t.toFixed(2)}</text>`;
+    }
+
+    puntos.forEach((p, i) => {
+      const xi = f1(x(i));
+      s += `<line class="axis" x1="${xi}" x2="${xi}" y1="${m.t + ih}" y2="${m.t + ih + 4}"/>`;
+      if (i === 0 || lunesDe(p.f) !== lunesDe(puntos[i - 1].f)) {
+        const xs = f1(x(i) - paso / 2);
+        if (i > 0) s += `<line class="sep" x1="${xs}" x2="${xs}" y1="${m.t}" y2="${m.t + ih}"/>`;
+        s += `<text class="tick" x="${xi}" y="${m.t + ih + 20}" text-anchor="middle">${corta(p.f)}</text>`;
+      }
+    });
+    s += `<line class="axis" x1="${m.l}" x2="${m.l + iw}" y1="${m.t + ih}" y2="${m.t + ih}"/>`;
+
+    const vUlt = puntos[iUlt].v;
+    const banda = (inf, sup) => {
+      const arriba = [[x(iUlt), y(vUlt)], ...PRON.map((p, k) => [x(iUlt + 1 + k), y(p[sup])])];
+      const abajo = [[x(iUlt), y(vUlt)], ...PRON.map((p, k) => [x(iUlt + 1 + k), y(p[inf])])].reverse();
+      return [...arriba, ...abajo].map(([a, b]) => `${f1(a)},${f1(b)}`).join(" ");
+    };
+    s += `<polygon class="b95" points="${banda("l95", "u95")}"/>`;
+    s += `<polygon class="b80" points="${banda("l80", "u80")}"/>`;
+
+    const ruta = idx => idx.map((i, k) => `${k ? "L" : "M"}${f1(x(i))},${f1(y(puntos[i].v))}`).join("");
+    const idxObs = Array.from({ length: iUlt + 1 }, (_, i) => i);
+    const idxPron = Array.from({ length: n - iUlt }, (_, i) => iUlt + i);
+    s += `<path class="linea" d="${ruta(idxObs)}"/>`;
+    s += `<path class="linea pron" d="${ruta(idxPron)}"/>`;
+    s += `<circle class="punto" cx="${f1(x(iUlt))}" cy="${f1(y(vUlt))}" r="4.5"/>`;
+
+    s += `<text class="etq" x="${f1(x(iUlt) - 9)}" y="${f1(y(vUlt) - 11)}" text-anchor="end">${n2(vUlt)}</text>`;
+    const xf = f1(x(n - 1) + 9);
+    s += `<text class="etq" x="${xf}" y="${f1(y(finPron.m))}" dy="0.34em">${n2(finPron.m)}</text>`;
+    s += `<text class="etq-2" x="${xf}" y="${f1(y(finPron.u95))}" dy="0.34em">${n2(finPron.u95)}</text>`;
+    s += `<text class="etq-2" x="${xf}" y="${f1(y(finPron.l95))}" dy="0.34em">${n2(finPron.l95)}</text>`;
+
+    s += `<line id="cruz" class="cruz" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" visibility="hidden"/>`;
+    s += `<circle id="pto" class="pto" cx="0" cy="0" r="5" visibility="hidden"/>`;
+    s += `<rect class="captura" x="${m.l}" y="${m.t}" width="${f1(iw)}" height="${ih}"/>`;
+    s += `</svg>`;
+
+    lienzo.innerHTML = s;
+    geo = { W, H, x, y };
+
+    const captura = lienzo.querySelector(".captura");
+    captura.addEventListener("pointermove", e => {
+      const r = lienzo.getBoundingClientRect();
+      const i = Math.floor((e.clientX - r.left - m.l) / paso);
+      mostrar(Math.max(0, Math.min(n - 1, i)));
+    });
+    captura.addEventListener("pointerleave", () => {
+      if (document.activeElement !== cont) ocultar();
+    });
+  }
+
+  function mostrar(i) {
+    if (!geo) return;
+    activo = i;
+    const p = puntos[i];
+    const cx = geo.x(i);
+    const cy = geo.y(p.v);
+    const cruz = lienzo.querySelector("#cruz");
+    const pto = lienzo.querySelector("#pto");
+    cruz.setAttribute("x1", cx);
+    cruz.setAttribute("x2", cx);
+    cruz.setAttribute("visibility", "visible");
+    pto.setAttribute("cx", cx);
+    pto.setAttribute("cy", cy);
+    pto.setAttribute("visibility", "visible");
+
+    const año = aFecha(p.f).getFullYear();
+    if (p.tipo === "obs") {
+      tip.innerHTML = `
+        <div class="t-f">${conDia(p.f)} ${año}</div>
+        <div class="t-v"><span>FIX</span><b>${n4(p.v)}</b></div>
+        <div class="t-v"><span>Var. diaria</span><b>${pct(p.cambio)}</b></div>`;
+    } else {
+      tip.innerHTML = `
+        <div class="t-f">${conDia(p.f)} ${año} · pronóstico</div>
+        <div class="t-v"><span>Media</span><b>${n4(p.m)}</b></div>
+        <div class="t-v"><span>Rango 80%</span><b>${n2(p.l80)} – ${n2(p.u80)}</b></div>
+        <div class="t-v"><span>Rango 95%</span><b>${n2(p.l95)} – ${n2(p.u95)}</b></div>`;
+    }
+    tip.hidden = false;
+    const tw = tip.offsetWidth;
+    const th = tip.offsetHeight;
+    let left = cx + 14;
+    if (left + tw > geo.W - 2) left = cx - 14 - tw;
+    const top = Math.max(0, Math.min(cy - th / 2, geo.H - th));
+    tip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+  }
+
+  function ocultar() {
+    tip.hidden = true;
+    const cruz = lienzo.querySelector("#cruz");
+    const pto = lienzo.querySelector("#pto");
+    if (cruz) cruz.setAttribute("visibility", "hidden");
+    if (pto) pto.setAttribute("visibility", "hidden");
+  }
+
+  cont.addEventListener("focus", () => mostrar(activo ?? iUlt));
+  cont.addEventListener("blur", ocultar);
+  cont.addEventListener("keydown", e => {
+    const ult = puntos.length - 1;
+    const actual = activo ?? iUlt;
+    const destino = { ArrowLeft: actual - 1, ArrowRight: actual + 1, Home: 0, End: ult }[e.key];
+    if (destino === undefined) return;
+    e.preventDefault();
+    mostrar(Math.max(0, Math.min(ult, destino)));
+  });
+
+  new ResizeObserver(() => {
+    if (Math.floor(lienzo.clientWidth) === anchoPrevio) return;
+    dibujar();
+    if (!tip.hidden && activo !== null) mostrar(activo);
+  }).observe(lienzo);
+  dibujar();
+</script>
